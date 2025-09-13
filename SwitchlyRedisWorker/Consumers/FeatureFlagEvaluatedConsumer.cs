@@ -4,6 +4,7 @@ using StackExchange.Redis;
 using Switchly.Application.Common.Interfaces;
 using Switchly.Shared.Events;
 
+
 namespace RedisWorker.Consumers;
 
 public class FeatureFlagEvaluatedConsumer:IConsumer<FeatureFlagEvaluatedEvent>

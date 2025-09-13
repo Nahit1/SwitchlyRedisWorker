@@ -48,3 +48,5 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+lib/
+*.dll

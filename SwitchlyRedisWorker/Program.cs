@@ -3,6 +3,9 @@ using RedisWorker.Consumers;
 using StackExchange.Redis;
 using Switchly.Application.Common.Interfaces;
 using SwitchlyRedisWorker;
+using Switchly.Shared.Events;
+using Switchly.Application.Common.Interfaces;
+
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
