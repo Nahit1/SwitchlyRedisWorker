@@ -11,22 +11,21 @@ ENV DOTNET_NOLOGO=1 \
     DOTNET_DISABLE_PARALLEL=1 \
     NUGET_PACKAGES=/tmp/nuget
 
-# Tüm repo içeriğini kopyala (props/targets kaçmasın)
-COPY . .
-
-# Teşhis için
-RUN dotnet --info
 
 # 1) Restore (sadece Worker projesi)
+COPY SwitchlyRedisWorker/SwitchlyRedisWorker.csproj SwitchlyRedisWorker/
+COPY lib/ lib/
+
 RUN dotnet restore SwitchlyRedisWorker/SwitchlyRedisWorker.csproj \
     --disable-parallel --ignore-failed-sources \
-    --source https://api.nuget.org/v3/index.json -v minimal
+    --source https://api.nuget.org/v3/index.json -v minimal 
 
-# 2) Build
+COPY . .
+
+# (3) Build & Publish
 RUN dotnet build SwitchlyRedisWorker/SwitchlyRedisWorker.csproj -c Release --no-restore \
     -p:RunAnalyzersDuringBuild=false -p:UseSharedCompilation=false -v minimal
 
-# 3) Publish (düşük RAM)
 RUN dotnet publish SwitchlyRedisWorker/SwitchlyRedisWorker.csproj -c Release --no-restore -o /app \
     -p:PublishReadyToRun=false -p:PublishSingleFile=false -p:UseAppHost=false \
     -p:RunAnalyzersDuringBuild=false -v minimal
