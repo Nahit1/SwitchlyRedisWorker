@@ -15,8 +15,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="Switchly.Shared">
-        <HintPath>..\..\..\Documents\projects\Switchly\Switchly.Shared\bin\Release\net9.0\Switchly.Shared.dll</HintPath>
-      </Reference>
+        <Reference Include="Switchly.Shared">
+            <HintPath>lib/Switchly.Shared/net9.0/Switchly.Shared.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="lib\Switchly.Shared\net9.0\" />
     </ItemGroup>
 </Project>
