@@ -13,4 +13,10 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0"/>
         <PackageReference Include="StackExchange.Redis" Version="2.8.37" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Switchly.Shared">
+        <HintPath>..\..\..\Documents\projects\Switchly\Switchly.Shared\bin\Release\net9.0\Switchly.Shared.dll</HintPath>
+      </Reference>
+    </ItemGroup>
 </Project>

@@ -1,8 +1,8 @@
 using System.Text.Json;
 using MassTransit;
 using StackExchange.Redis;
-using SwitchlyRedisWorker.Events;
-using SwitchlyRedisWorker.Interfaces;
+using Switchly.Application.Common.Interfaces;
+using Switchly.Shared.Events;
 
 namespace RedisWorker.Consumers;
 
@@ -26,7 +26,7 @@ public class FeatureFlagEvaluatedConsumer:IConsumer<FeatureFlagEvaluatedEvent>
   public async Task Consume(ConsumeContext<FeatureFlagEvaluatedEvent> context)
   {
     var pattern = $"{context.Message.RedisKeys}";
-    Console.WriteLine("sadasdasdasd");
+    Console.WriteLine(pattern);
     Console.WriteLine($"[Redis] → pattern: {pattern}");
     await DeleteKeysByPatternAsync(pattern);
 

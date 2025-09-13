@@ -1,8 +1,8 @@
 using MassTransit;
 using RedisWorker.Consumers;
 using StackExchange.Redis;
+using Switchly.Application.Common.Interfaces;
 using SwitchlyRedisWorker;
-using SwitchlyRedisWorker.Interfaces;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
@@ -27,7 +27,7 @@ var host = Host.CreateDefaultBuilder(args)
     // 1) URI (MessageBus__RabbitMq__Host = amqp://user:pass@host:5672/)
     // 2) Ayrı alanlar (RabbitMQ__Host, RabbitMQ__User, RabbitMQ__Pass)
     var rabbitUri  = config["RabbitMq:Url"]; // amqp://... (opsiyonel)
-    var rabbitHost = config["RabbitMQ:Host"] ?? "rabbitmq";
+    var rabbitHost = config["RabbitMQ:Host"] ?? "localhost";
     var rabbitUser = config["RabbitMQ:User"] ?? "guest";
     var rabbitPass = config["RabbitMQ:Pass"] ?? "guest";
 
@@ -38,20 +38,15 @@ var host = Host.CreateDefaultBuilder(args)
 
       x.UsingRabbitMq((ctx, cfg) =>
       {
-        if (!string.IsNullOrWhiteSpace(rabbitUri) && rabbitUri.StartsWith("amqp", StringComparison.OrdinalIgnoreCase))
-        {
-          // URI ile konfig (CloudAMQP/Prod için ideal)
-          cfg.Host(new Uri(rabbitUri));
-        }
-        else
-        {
-          // Host/User/Pass ile konfig (local compose için ideal)
-          cfg.Host(rabbitHost, "/", h =>
-          {
-            h.Username(rabbitUser);
-            h.Password(rabbitPass);
-          });
-        }
+        // cfg.Host(rabbitHost, "/", h =>
+        // {
+        //   h.Username(rabbitUser);
+        //   h.Password(rabbitPass);
+        // });
+        
+        cfg.Host(new Uri(rabbitUri));
+        
+       
 
         // Bağlantı/işleme retry (kuyruk geç açılırsa düşmesin)
         cfg.UseMessageRetry(r => r.Interval(5, TimeSpan.FromSeconds(5)));
