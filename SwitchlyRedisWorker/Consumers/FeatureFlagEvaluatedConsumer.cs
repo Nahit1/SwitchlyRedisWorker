@@ -26,6 +26,7 @@ public class FeatureFlagEvaluatedConsumer:IConsumer<FeatureFlagEvaluatedEvent>
   public async Task Consume(ConsumeContext<FeatureFlagEvaluatedEvent> context)
   {
     var pattern = $"{context.Message.RedisKeys}";
+    Console.WriteLine("sadasdasdasd");
     Console.WriteLine($"[Redis] → pattern: {pattern}");
     await DeleteKeysByPatternAsync(pattern);
 

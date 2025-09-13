@@ -20,6 +20,7 @@ var host = Host.CreateDefaultBuilder(args)
     // Örn (Upstash/Prod): "<host>:6379,password=<pass>,ssl=true,abortConnect=false"
     var redisConn = config["Cache:Redis:Connection"] ?? "redis:6379,abortConnect=false";
     services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn));
+    Console.WriteLine("sadasdasdasd1");
 
     // ---------------- MassTransit / RabbitMQ ----------------
     // İki kullanım desteklenir:
