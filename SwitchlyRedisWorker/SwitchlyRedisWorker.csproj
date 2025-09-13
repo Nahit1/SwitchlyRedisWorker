@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>dotnet-SwitchlyRedisWorker-ec13c33f-6f74-4bdf-bc44-63e9a6aaf73e</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MassTransit" Version="8.4.0" />
+        <PackageReference Include="MassTransit.RabbitMQ" Version="8.4.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.8.37" />
+    </ItemGroup>
+</Project>
