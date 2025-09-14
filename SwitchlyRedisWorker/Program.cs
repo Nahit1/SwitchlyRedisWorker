@@ -1,3 +1,4 @@
+using System.Security.Authentication;
 using MassTransit;
 using RedisWorker.Consumers;
 using StackExchange.Redis;
@@ -15,15 +16,30 @@ var host = Host.CreateDefaultBuilder(args)
   {
     var config = context.Configuration;
 
-    services.AddSingleton<IRedisKeyProvider, RedisKeyProvider>();
+    var host = "redis-17749.c322.us-east-1-2.ec2.redns.redis-cloud.com";
+    var port = 17749;
+    var user = "default";
+    var pass = "dd3nbbZHmrODZP4TOk8mwuU17KJ8Yjgy"; // panelden rotate etmeni öneririm
 
-    // ---------------- Redis ----------------
-    // ENV / appsettings key: Cache__Redis__Connection
-    // Örn (local compose): "redis:6379,abortConnect=false"
-    // Örn (Upstash/Prod): "<host>:6379,password=<pass>,ssl=true,abortConnect=false"
-    var redisConn = config["Cache:Redis:Connection"] ?? "redis:6379,abortConnect=false";
-    services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn));
-    Console.WriteLine("sadasdasdasd1");
+    var opts = new ConfigurationOptions {
+      EndPoints = { { host, port } },
+      User = user,
+      Password = pass,
+      Ssl = false,                  // 🔴 TLS KAPALI (çünkü redis:// ile PONG aldın)
+      AbortOnConnectFail = false,
+      ResolveDns = true,
+      AllowAdmin = true,            // SCAN/KEYS gibi komutlar için işine yarar
+      ConnectRetry = 5,
+      ConnectTimeout = 15000,
+      SyncTimeout = 15000
+    };
+    
+    Console.WriteLine($"[REDIS] Connecting TLS… host={host} user={user}");
+    var mux = ConnectionMultiplexer.Connect(opts);
+    services.AddSingleton<IConnectionMultiplexer>(mux);
+
+    // Diğer bağımlılıklar
+    services.AddSingleton<IRedisKeyProvider, RedisKeyProvider>();
 
     // ---------------- MassTransit / RabbitMQ ----------------
     // İki kullanım desteklenir:
@@ -58,6 +74,7 @@ var host = Host.CreateDefaultBuilder(args)
         cfg.ReceiveEndpoint("feature-flag-evaluated", e =>
         {
           e.ConfigureConsumer<FeatureFlagEvaluatedConsumer>(ctx);
+          e.Bind<FeatureFlagEvaluatedEvent>();
         });
       });
     });

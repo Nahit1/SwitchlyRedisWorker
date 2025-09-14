@@ -9,14 +9,17 @@ namespace RedisWorker.Consumers;
 
 public class FeatureFlagEvaluatedConsumer:IConsumer<FeatureFlagEvaluatedEvent>
 {
+  private readonly IConnectionMultiplexer _mux;
   private readonly IDatabase _redis;
   private readonly ILogger<FeatureFlagEvaluatedConsumer> _logger;
   private readonly IRedisKeyProvider _keyProvider;
   private readonly IConnectionMultiplexer _connection;
 
-  public FeatureFlagEvaluatedConsumer(IConnectionMultiplexer redis,IConnectionMultiplexer connection, ILogger<FeatureFlagEvaluatedConsumer> logger, IRedisKeyProvider keyProvider)
+  public FeatureFlagEvaluatedConsumer(IConnectionMultiplexer mux,IConnectionMultiplexer redis,IConnectionMultiplexer connection, ILogger<FeatureFlagEvaluatedConsumer> logger, IRedisKeyProvider keyProvider)
   {
-    _redis = redis.GetDatabase();
+    _mux = mux;
+    // _redis = redis.GetDatabase();
+    _redis = mux.GetDatabase();
     _logger = logger;
     _keyProvider = keyProvider;
     _connection = connection;
@@ -72,44 +75,83 @@ public class FeatureFlagEvaluatedConsumer:IConsumer<FeatureFlagEvaluatedEvent>
 
     var jsonData = JsonSerializer.Serialize(result);
 
-    await _redis.StringSetAsync(
-      msg.RedisKeys,
-      jsonData,
-      TimeSpan.FromHours(12)
-    );
+    try
+    {
+      var ok = await _redis.StringSetAsync(
+        msg.RedisKeys,
+        jsonData,
+        TimeSpan.FromHours(12),
+        when: When.Always,
+        flags: CommandFlags.DemandMaster);
+
+      Console.WriteLine($"[REDIS] SET {msg.RedisKeys} => {(ok ? "OK" : "FAIL")}");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine("[REDIS] SET EX: " + ex);
+      throw; // MassTransit retry görsün istiyorsan bırakabilirsin
+    }
+    
+    
 
   }
 
   public async Task DeleteKeysByPatternAsync(string pattern)
   {
-    var db = _connection.GetDatabase();
+    // NOTE:
+    // - Program.cs tarafında ConnectionOptions.AllowAdmin = true olmalı
+    // - Redis Cloud cluster ise tüm primary endpoint'leri dolaş
+    // - Keys() aslında SCAN; pageSize ile taramayı sınırlıyoruz
 
-    // Tek bir aktif sunucuya bağlan
-    var server = _connection.GetServer(_connection.GetEndPoints().First());
+    var endpoints = _mux.GetEndPoints();
+    var toDelete = new List<RedisKey>();
 
-    if (!server.IsConnected)
+    foreach (var ep in endpoints)
     {
-      Console.WriteLine($"[Redis] Sunucuya bağlanılamadı → {server.EndPoint}");
+      var server = _mux.GetServer(ep);
+      if (!server.IsConnected || server.IsReplica)
+        continue;
+
+      // kontrollü tarama
+      foreach (var key in server.Keys(pattern: pattern, pageSize: 1000))
+        toDelete.Add(key);
+    }
+
+    if (toDelete.Count == 0)
+    {
+      _logger.LogInformation("[Redis] Silinecek key yok → pattern: {pattern}", pattern);
       return;
     }
 
-    if (server.IsReplica)
-    {
-      Console.WriteLine($"[Redis] Replica node, işlem yapılmadı → {server.EndPoint}");
-      return;
-    }
-
-    var keys = server.Keys(pattern: pattern).ToArray();
-
-    if (keys.Length == 0)
-    {
-      Console.WriteLine($"[Redis] Silinecek key bulunamadı → pattern: {pattern}");
-      return;
-    }
-
-    await db.KeyDeleteAsync(keys);
-
-    Console.WriteLine($"[Redis] {keys.Length} key silindi → pattern: {pattern}");
+    await _redis.KeyDeleteAsync(toDelete.ToArray());
+    _logger.LogInformation("[Redis] {count} key silindi → pattern: {pattern}", toDelete.Count, pattern);
+    // var db = _connection.GetDatabase();
+    //
+    // var server = _connection.GetServer(_connection.GetEndPoints().First());
+    //
+    // if (!server.IsConnected)
+    // {
+    //   Console.WriteLine($"[Redis] Sunucuya bağlanılamadı → {server.EndPoint}");
+    //   return;
+    // }
+    //
+    // if (server.IsReplica)
+    // {
+    //   Console.WriteLine($"[Redis] Replica node, işlem yapılmadı → {server.EndPoint}");
+    //   return;
+    // }
+    //
+    // var keys = server.Keys(pattern: pattern).ToArray();
+    //
+    // if (keys.Length == 0)
+    // {
+    //   Console.WriteLine($"[Redis] Silinecek key bulunamadı → pattern: {pattern}");
+    //   return;
+    // }
+    //
+    // await db.KeyDeleteAsync(keys);
+    //
+    // Console.WriteLine($"[Redis] {keys.Length} key silindi → pattern: {pattern}");
   }
 
 }
