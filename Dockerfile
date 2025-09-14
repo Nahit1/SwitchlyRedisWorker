@@ -10,25 +10,33 @@ ENV DOTNET_NOLOGO=1 \
     DOTNET_DISABLE_PARALLEL=1 \
     NUGET_PACKAGES=/tmp/nuget
 
-# 1) Sadece csproj önce (cache için)
+# 1) Sadece csproj'u kopyala (restore cache için)
 COPY SwitchlyRedisWorker/SwitchlyRedisWorker.csproj SwitchlyRedisWorker/
+
+# 2) Restore
 RUN dotnet restore SwitchlyRedisWorker/SwitchlyRedisWorker.csproj \
     --disable-parallel --ignore-failed-sources \
     --source https://api.nuget.org/v3/index.json -v minimal
 
-# 2) Tüm repo (lib dahil)
+# 3) Tüm repo (lib klasörü dahil) kopyala
 COPY . .
 
-# 2.1) DLL gerçekten geldi mi? (YANLIŞSA BURADA PATLASIN)
+# (Opsiyonel) DLL gerçekten konteynıra geldi mi? Hemen doğrulayalım:
+# Eğer yoksa burada patlayacak ve sorunu net görürüz.
 RUN ls -la SwitchlyRedisWorker/lib/Switchly.Shared/net9.0/ && \
     test -f SwitchlyRedisWorker/lib/Switchly.Shared/net9.0/Switchly.Shared.dll
 
-# 3) Build & Publish
+# 4) Build
 RUN dotnet build SwitchlyRedisWorker/SwitchlyRedisWorker.csproj -c Release --no-restore \
     -p:RunAnalyzersDuringBuild=false -p:UseSharedCompilation=false -v minimal
 
+# 5) Publish
 RUN dotnet publish SwitchlyRedisWorker/SwitchlyRedisWorker.csproj -c Release --no-restore -o /app \
     -p:PublishReadyToRun=false -p:PublishSingleFile=false -p:UseAppHost=false \
     -p:RunAnalyzersDuringBuild=false -v minimal
 
-# runtime...
+# ---------- runtime ----------
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
+WORKDIR /app
+COPY --from=build /app .
+ENTRYPOINT ["dotnet","SwitchlyRedisWorker.dll"]
